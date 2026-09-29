@@ -785,6 +785,7 @@ dependencies = [
  "anyhow",
  "arrow",
  "clap",
+ "libc",
  "parquet",
  "tempfile",
  "unicode-width",

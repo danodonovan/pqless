@@ -1,9 +1,10 @@
-//! `parq <file>` — print a Parquet file as an aligned text table.
+//! `parq <file>` — browse a Parquet file a screenful at a time, like `less`.
 
+mod pager;
 mod table;
 
 use std::fs::File;
-use std::io::{self, BufWriter, Write};
+use std::io::{self, BufWriter, IsTerminal, Write};
 use std::path::PathBuf;
 use std::process::ExitCode;
 
@@ -12,10 +13,13 @@ use clap::Parser;
 use parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder;
 
 /// Rows decoded per step. Decoding is lazy, so only as much of the file is
-/// read as the reader downstream has consumed.
+/// read as the pager has asked for (plus what fits in the pipe buffer).
 const BATCH_SIZE: usize = 1024;
 
-/// Print a Parquet file as an aligned text table.
+/// Browse a Parquet file page by page, like `less`.
+///
+/// Output goes through $PARQ_PAGER, else $PAGER, else `less`; when stdout is
+/// not a terminal the table is written straight out instead.
 #[derive(Parser)]
 #[command(version)]
 struct Args {
@@ -44,9 +48,23 @@ fn run(args: Args) -> Result<()> {
     let schema = builder.schema().clone();
     let batches = builder.with_batch_size(BATCH_SIZE).build()?;
 
-    let mut out = BufWriter::new(io::stdout().lock());
-    table::render(&schema, batches, total_rows, &mut out)?;
-    Ok(out.flush()?)
+    let pager = if io::stdout().is_terminal() {
+        pager::spawn()
+    } else {
+        None
+    };
+    let Some(mut pager) = pager else {
+        let mut out = BufWriter::new(io::stdout().lock());
+        table::render(&schema, batches, total_rows, &mut out)?;
+        return Ok(out.flush()?);
+    };
+
+    let mut out = BufWriter::new(pager.stdin.take().expect("pager stdin is piped"));
+    let written =
+        table::render(&schema, batches, total_rows, &mut out).and_then(|()| Ok(out.flush()?));
+    drop(out); // close the pipe so the pager sees end of input
+    pager.wait().context("waiting for pager")?;
+    written
 }
 
 fn is_broken_pipe(e: &anyhow::Error) -> bool {

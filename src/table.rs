@@ -17,6 +17,9 @@ use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
 /// Widest a column may grow before its values are truncated.
 pub const MAX_COL_WIDTH: usize = 40;
 
+/// Lines of header output (column names + rule) before the first row.
+pub const HEADER_LINES: usize = 2;
+
 const SEP: &str = " │ ";
 const OPTIONS: FormatOptions<'static> = FormatOptions::new()
     .with_null("null")
