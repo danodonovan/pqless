@@ -20,8 +20,10 @@ pub const MAX_COL_WIDTH: usize = 40;
 /// Lines of header output (column names + rule) before the first row.
 pub const HEADER_LINES: usize = 2;
 
-const SEP: &str = " │ ";
-const OPTIONS: FormatOptions<'static> = FormatOptions::new()
+/// Separator between columns.
+pub const SEP: &str = " │ ";
+
+pub const OPTIONS: FormatOptions<'static> = FormatOptions::new()
     .with_null("null")
     .with_display_error(true);
 
@@ -97,22 +99,22 @@ where
 
 /// Formats every cell of `batch` as sanitised text, column-major.
 fn format_batch(batch: &RecordBatch) -> Result<Vec<Vec<String>>> {
-    let mut buf = String::new();
     batch
         .columns()
         .iter()
         .map(|array| {
             let fmt = ArrayFormatter::try_new(array.as_ref(), &OPTIONS)?;
-            Ok((0..batch.num_rows())
-                .map(|r| {
-                    buf.clear();
-                    // Errors are rendered inline because display_error is set.
-                    let _ = write!(buf, "{}", fmt.value(r));
-                    sanitize(&buf)
-                })
-                .collect())
+            Ok((0..batch.num_rows()).map(|r| cell_text(&fmt, r)).collect())
         })
         .collect()
+}
+
+/// The sanitised display text of one value.
+pub fn cell_text(fmt: &ArrayFormatter, row: usize) -> String {
+    let mut buf = String::new();
+    // Errors are rendered inline because display_error is set.
+    let _ = write!(buf, "{}", fmt.value(row));
+    sanitize(&buf)
 }
 
 fn write_row(
@@ -122,30 +124,31 @@ fn write_row(
     columns: &[Column],
     values: impl Iterator<Item = impl AsRef<str>>,
 ) {
-    fit(line, row_label, index);
+    fit(line, row_label, index.width, index.right);
     for (col, value) in columns.iter().zip(values) {
         line.push_str(SEP);
-        fit(line, value.as_ref(), col);
+        fit(line, value.as_ref(), col.width, col.right);
     }
     line.truncate(line.trim_end().len());
     line.push('\n');
 }
 
-/// Appends `value` to `line`, padded or truncated to exactly `col.width` cells.
-fn fit(line: &mut String, value: &str, col: &Column) {
-    let width = value.width();
-    if width <= col.width {
-        let pad = col.width - width;
-        if col.right {
+/// Appends `value` to `line`, padded (on the left if `right` aligned) or
+/// truncated to exactly `width` cells.
+pub fn fit(line: &mut String, value: &str, width: usize, right: bool) {
+    let value_width = value.width();
+    if value_width <= width {
+        let pad = width - value_width;
+        if right {
             line.extend(std::iter::repeat_n(' ', pad));
         }
         line.push_str(value);
-        if !col.right {
+        if !right {
             line.extend(std::iter::repeat_n(' ', pad));
         }
         return;
     }
-    let budget = col.width - 1; // leave room for the ellipsis
+    let budget = width - 1; // leave room for the ellipsis
     let mut used = 0;
     for ch in value.chars() {
         let w = ch.width().unwrap_or(0);
@@ -162,7 +165,7 @@ fn fit(line: &mut String, value: &str, col: &Column) {
 /// Makes a value safe to show on one terminal line: escapes common
 /// whitespace and replaces other control characters (notably ESC, which a
 /// pager in raw mode would otherwise interpret).
-fn sanitize(s: &str) -> String {
+pub fn sanitize(s: &str) -> String {
     if !s.chars().any(char::is_control) {
         return s.to_owned();
     }
@@ -190,7 +193,7 @@ mod tests {
 
     fn fitted(value: &str, width: usize, right: bool) -> String {
         let mut s = String::new();
-        fit(&mut s, value, &Column { width, right });
+        fit(&mut s, value, width, right);
         s
     }
 
