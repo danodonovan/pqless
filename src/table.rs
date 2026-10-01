@@ -1,8 +1,8 @@
 //! Streams Arrow record batches out as an aligned, plain-text table.
 //!
 //! Column widths are sized from the header and the first batch, then fixed for
-//! the rest of the file so a pager's pinned header stays lined up. Anything
-//! wider than its column is truncated with an ellipsis.
+//! the rest of the file so every line stays aligned. Anything wider than its
+//! column is truncated with an ellipsis.
 
 use std::fmt::Write as _;
 use std::io::Write;
@@ -16,9 +16,6 @@ use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
 
 /// Widest a column may grow before its values are truncated.
 pub const MAX_COL_WIDTH: usize = 40;
-
-/// Lines of header output (column names + rule) before the first row.
-pub const HEADER_LINES: usize = 2;
 
 /// Separator between columns.
 pub const SEP: &str = " │ ";

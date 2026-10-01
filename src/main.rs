@@ -1,25 +1,26 @@
 //! `parq <file>` — browse a Parquet file a screenful at a time, like `less`.
 
-mod pager;
+mod source;
 mod table;
+mod viewer;
 
-use std::fs::File;
 use std::io::{self, BufWriter, IsTerminal, Write};
 use std::path::PathBuf;
 use std::process::ExitCode;
 
-use anyhow::{Context, Result};
+use anyhow::Result;
 use clap::Parser;
-use parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder;
 
-/// Rows decoded per step. Decoding is lazy, so only as much of the file is
-/// read as the pager has asked for (plus what fits in the pipe buffer).
+use crate::source::Source;
+
+/// Rows decoded per step when writing the whole table out.
 const BATCH_SIZE: usize = 1024;
 
 /// Browse a Parquet file page by page, like `less`.
 ///
-/// Output goes through $PARQ_PAGER, else $PAGER, else `less`; when stdout is
-/// not a terminal the table is written straight out instead.
+/// Only the rows and columns on screen are decoded, so even very large or
+/// very wide files open instantly. Press ? inside for keys. When stdout is not
+/// a terminal the whole table is written out as text instead.
 #[derive(Parser)]
 #[command(version)]
 struct Args {
@@ -40,31 +41,19 @@ fn main() -> ExitCode {
 }
 
 fn run(args: Args) -> Result<()> {
-    let file =
-        File::open(&args.file).with_context(|| format!("cannot open {}", args.file.display()))?;
-    let builder = ParquetRecordBatchReaderBuilder::try_new(file)
-        .with_context(|| format!("cannot read {} as Parquet", args.file.display()))?;
-    let total_rows = builder.metadata().file_metadata().num_rows().max(0) as usize;
-    let schema = builder.schema().clone();
-    let batches = builder.with_batch_size(BATCH_SIZE).build()?;
-
-    let pager = if io::stdout().is_terminal() {
-        pager::spawn()
-    } else {
-        None
-    };
-    let Some(mut pager) = pager else {
-        let mut out = BufWriter::new(io::stdout().lock());
-        table::render(&schema, batches, total_rows, &mut out)?;
-        return Ok(out.flush()?);
-    };
-
-    let mut out = BufWriter::new(pager.stdin.take().expect("pager stdin is piped"));
-    let written =
-        table::render(&schema, batches, total_rows, &mut out).and_then(|()| Ok(out.flush()?));
-    drop(out); // close the pipe so the pager sees end of input
-    pager.wait().context("waiting for pager")?;
-    written
+    let src = Source::open(&args.file)?;
+    if io::stdout().is_terminal() {
+        let title = args.file.file_name().unwrap_or(args.file.as_os_str());
+        return viewer::run(&src, title.to_string_lossy().into_owned());
+    }
+    let mut out = BufWriter::new(io::stdout().lock());
+    table::render(
+        src.schema(),
+        src.batches(BATCH_SIZE)?,
+        src.num_rows(),
+        &mut out,
+    )?;
+    Ok(out.flush()?)
 }
 
 fn is_broken_pipe(e: &anyhow::Error) -> bool {
