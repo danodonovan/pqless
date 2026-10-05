@@ -23,3 +23,12 @@ unicode-width = "0.2.2"
 
 [dev-dependencies]
 tempfile = "3.27.0"
+
+# The profile that 'dist' will build with
+[profile.dist]
+inherits = "release"
+lto = "thin"
+
+[package.metadata.dist]
+# publish = false (no crates.io) would otherwise hide pqless from dist.
+dist = true
