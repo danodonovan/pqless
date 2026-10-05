@@ -20,18 +20,18 @@ of a second, and jumping to any row or column is near instant.
 On macOS or Linux (x86_64 or arm64):
 
 ```
-curl --proto '=https' --tlsv1.2 -LsSf https://github.com/danodonovan/rs-parquet-cli/releases/latest/download/pqless-installer.sh | sh
+curl --proto '=https' --tlsv1.2 -LsSf https://github.com/danodonovan/pqless/releases/latest/download/pqless-installer.sh | sh
 ```
 
 This puts `pqless` in `~/.cargo/bin`. Prebuilt archives are also on the
-[releases page](https://github.com/danodonovan/rs-parquet-cli/releases). The
+[releases page](https://github.com/danodonovan/pqless/releases). The
 binaries are not signed, so on macOS a copy downloaded with a browser needs
 `xattr -d com.apple.quarantine pqless` before it will run.
 
 With Rust 1.88 or newer you can build it instead:
 
 ```
-cargo install --git https://github.com/danodonovan/rs-parquet-cli
+cargo install --git https://github.com/danodonovan/pqless
 ```
 
 ## Keys
