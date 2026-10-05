@@ -7,9 +7,9 @@ use arrow::array::{ArrayRef, Int64Array, RecordBatch, StringArray};
 use parquet::arrow::ArrowWriter;
 use parquet::file::properties::WriterProperties;
 
-fn parq(path: &Path) -> Output {
-    // stdout is a pipe here, so parq writes directly instead of paging.
-    Command::new(env!("CARGO_BIN_EXE_parq"))
+fn pqless(path: &Path) -> Output {
+    // stdout is a pipe here, so pqless writes directly instead of paging.
+    Command::new(env!("CARGO_BIN_EXE_pqless"))
         .arg(path)
         .output()
         .unwrap()
@@ -38,7 +38,7 @@ fn prints_every_row_across_row_groups() {
     let path = dir.path().join("t.parquet");
     write_parquet(&path, 2500, 1000);
 
-    let out = parq(&path);
+    let out = pqless(&path);
     assert!(
         out.status.success(),
         "{}",
@@ -62,7 +62,7 @@ fn quitting_early_is_not_an_error() {
         .arg("-c")
         .arg(format!(
             "'{}' '{}' | head -n 3",
-            env!("CARGO_BIN_EXE_parq"),
+            env!("CARGO_BIN_EXE_pqless"),
             path.display()
         ))
         .output()
@@ -78,8 +78,8 @@ fn reports_non_parquet_input() {
     let path = dir.path().join("not.parquet");
     std::fs::write(&path, "hello").unwrap();
 
-    let out = parq(&path);
+    let out = pqless(&path);
     assert!(!out.status.success());
     let err = String::from_utf8(out.stderr).unwrap();
-    assert!(err.starts_with("parq: cannot read"), "{err}");
+    assert!(err.starts_with("pqless: cannot read"), "{err}");
 }

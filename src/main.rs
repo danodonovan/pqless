@@ -1,4 +1,4 @@
-//! `parq <file>` — browse a Parquet file a screenful at a time, like `less`.
+//! `pqless <file>` — browse a Parquet file a screenful at a time, like `less`.
 
 mod source;
 mod table;
@@ -34,7 +34,7 @@ fn main() -> ExitCode {
         // The reader quit before the end of the file: that's normal.
         Err(e) if is_broken_pipe(&e) => ExitCode::SUCCESS,
         Err(e) => {
-            eprintln!("parq: {e:#}");
+            eprintln!("pqless: {e:#}");
             ExitCode::FAILURE
         }
     }

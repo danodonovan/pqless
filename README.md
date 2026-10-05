@@ -1,9 +1,9 @@
-# parq
+# pqless
 
 Browse a Parquet file a screenful at a time, like `less`.
 
 ```
-$ parq data.parquet
+$ pqless data.parquet
 ```
 
 Rows are shown as an aligned table with a row-number column, a pinned
@@ -36,7 +36,7 @@ of a second, and jumping to any row or column is near instant.
 ## Piping
 
 When stdout isn't a terminal the whole table is written out as plain text,
-so `parq f.parquet | grep …` and `parq f.parquet | head` work. This mode
+so `pqless f.parquet | grep …` and `pqless f.parquet | head` work. This mode
 decodes every column, so it is slow on very wide files.
 
 ## Display
