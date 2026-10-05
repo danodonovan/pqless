@@ -17,7 +17,13 @@ of a second, and jumping to any row or column is near instant.
 
 ## Install
 
-On macOS or Linux (x86_64 or arm64):
+With [Homebrew](https://brew.sh) on macOS or Linux:
+
+```
+brew install danodonovan/tap/pqless
+```
+
+Or with the install script (macOS or Linux, x86_64 or arm64):
 
 ```
 curl --proto '=https' --tlsv1.2 -LsSf https://github.com/danodonovan/pqless/releases/latest/download/pqless-installer.sh | sh
