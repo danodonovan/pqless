@@ -2,6 +2,16 @@
 name = "pqless"
 version = "0.2.0"
 edition = "2024"
+rust-version = "1.88"
+description = "Browse Parquet files a screenful at a time, like less"
+authors = ["Dan O'Donovan <dan.odonovan@gmail.com>"]
+license = "MIT"
+repository = "https://github.com/danodonovan/rs-parquet-cli"
+readme = "README.md"
+keywords = ["parquet", "pager", "tui", "cli", "arrow"]
+categories = ["command-line-utilities"]
+# Not on crates.io (yet); this stops an accidental `cargo publish`.
+publish = false
 
 [dependencies]
 anyhow = "1.0.104"
