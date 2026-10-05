@@ -15,6 +15,25 @@ for the columns in view. Parquet stores columns separately, so a file with
 tens of thousands of columns or tens of millions of rows opens in a fraction
 of a second, and jumping to any row or column is near instant.
 
+## Install
+
+On macOS or Linux (x86_64 or arm64):
+
+```
+curl --proto '=https' --tlsv1.2 -LsSf https://github.com/danodonovan/rs-parquet-cli/releases/latest/download/pqless-installer.sh | sh
+```
+
+This puts `pqless` in `~/.cargo/bin`. Prebuilt archives are also on the
+[releases page](https://github.com/danodonovan/rs-parquet-cli/releases). The
+binaries are not signed, so on macOS a copy downloaded with a browser needs
+`xattr -d com.apple.quarantine pqless` before it will run.
+
+With Rust 1.88 or newer you can build it instead:
+
+```
+cargo install --git https://github.com/danodonovan/rs-parquet-cli
+```
+
 ## Keys
 
 | Keys                | Action                   |
@@ -52,5 +71,10 @@ decodes every column, so it is slow on very wide files.
 ## Build
 
 ```
-cargo install --path .
+cargo build --release
+cargo test
 ```
+
+## License
+
+MIT
