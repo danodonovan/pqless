@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.1 - 2026-10-05
+
+- Install with Homebrew: `brew install danodonovan/tap/pqless`.
+- The repository is now [danodonovan/pqless](https://github.com/danodonovan/pqless);
+  old links redirect.
+
 ## 0.2.0 - 2026-10-05
 
 First release.
