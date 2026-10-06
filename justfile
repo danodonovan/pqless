@@ -79,3 +79,10 @@ tag:
     [[ -n "$id" ]] || { echo "no Release run found for $tag; check the Actions tab"; exit 1; }
     gh run watch "$id" --compact --exit-status --interval 30
     gh release view "$tag" --json url --jq .url
+
+# Re-record the demo GIF for the website (needs vhs)
+demo:
+    cargo build --release
+    mkdir -p target/demo
+    cargo run -q --release --example demo_data -- target/demo/sensors.parquet
+    PATH="$PWD/target/release:$PATH" vhs demo/demo.tape
