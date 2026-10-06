@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>pqless — browse Parquet files like less</title>
+<meta name="description" content="A terminal pager for Parquet files. Opens huge and very wide files instantly by decoding only what's on screen.">
+<meta property="og:title" content="pqless — browse Parquet files like less">
+<meta property="og:description" content="A terminal pager for Parquet files. Opens huge and very wide files instantly by decoding only what's on screen.">
+<meta property="og:image" content="https://danodonovan.github.io/pqless/og.jpg">
+<meta property="og:url" content="https://danodonovan.github.io/pqless/">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<style>
+  :root {
+    --bg: #eff1f5;
+    --surface: #ffffff;
+    --text: #4c4f69;
+    --muted: #6c6f85;
+    --border: #ccd0da;
+    --accent: #8839ef;
+    --accent-soft: #ede4fc;
+    --code-bg: #e6e9ef;
+    --term-bg: #1e1e2e;
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1e1e2e;
+      --surface: #181825;
+      --text: #cdd6f4;
+      --muted: #a6adc8;
+      --border: #313244;
+      --accent: #cba6f7;
+      --accent-soft: #2a2540;
+      --code-bg: #11111b;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 17px/1.6 var(--sans);
+  }
+  a { color: var(--accent); }
+  code, kbd, pre { font-family: var(--mono); font-size: 0.92em; }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 0 16px; }
+
+  header { padding: 64px 0 28px; text-align: center; }
+  h1 {
+    font: 700 clamp(2.4rem, 7vw, 3.6rem)/1.1 var(--mono);
+    letter-spacing: -0.03em;
+    margin: 0 0 12px;
+  }
+  h1 .cursor { color: var(--accent); }
+  .tagline { font-size: 1.25rem; color: var(--muted); margin: 0 auto 28px; max-width: 34em; }
+  .links { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .button {
+    display: inline-block;
+    padding: 9px 18px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    text-decoration: none;
+    font-weight: 600;
+  }
+  .button.primary { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+  .button:hover { border-color: var(--accent); }
+
+  .terminal {
+    margin: 20px 0 56px;
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--term-bg);
+    border: 1px solid var(--border);
+    box-shadow: 0 18px 50px rgb(0 0 0 / 0.25);
+  }
+  .terminal .bar { display: flex; gap: 7px; padding: 11px 14px; background: #181825; }
+  .terminal .bar span { width: 11px; height: 11px; border-radius: 50%; background: #45475a; }
+  .terminal img { display: block; width: 100%; height: auto; }
+
+  h2 { font-size: 1.5rem; margin: 0 0 18px; letter-spacing: -0.01em; }
+  section { margin: 0 0 56px; }
+
+  .install { display: grid; gap: 14px; }
+  .install > div { min-width: 0; }
+  .install h3 { margin: 0 0 6px; font-size: 0.95rem; color: var(--muted); font-weight: 600; }
+  .cmd {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 10px 10px 14px;
+  }
+  .cmd pre { margin: 0; flex: 1; min-width: 0; overflow-x: auto; white-space: pre; }
+  .cmd pre::before { content: "$ "; color: var(--muted); }
+  .copy {
+    flex: none;
+    font: 600 0.8rem var(--sans);
+    color: var(--muted);
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 5px 10px;
+    cursor: pointer;
+  }
+  .copy:hover { color: var(--text); border-color: var(--accent); }
+  .note { color: var(--muted); font-size: 0.92rem; margin: 4px 0 0; }
+
+  .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+  .feature {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 22px;
+  }
+  .feature h3 { margin: 0 0 8px; font-size: 1.05rem; }
+  .feature p { margin: 0; color: var(--muted); }
+
+  table { border-collapse: collapse; width: 100%; }
+  td { padding: 8px 12px 8px 0; border-bottom: 1px solid var(--border); vertical-align: top; }
+  td:first-child { white-space: nowrap; width: 1%; padding-right: 28px; }
+  kbd {
+    display: inline-block;
+    min-width: 1.6em;
+    text-align: center;
+    padding: 1px 6px;
+    margin: 1px 0;
+    border: 1px solid var(--border);
+    border-bottom-width: 2px;
+    border-radius: 5px;
+    background: var(--surface);
+  }
+  .n { font-style: italic; color: var(--accent); font-family: var(--mono); }
+
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 24px 0 48px;
+    color: var(--muted);
+    font-size: 0.92rem;
+    text-align: center;
+  }
+  footer a { color: inherit; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>pqless<span class="cursor">_</span></h1>
+  <p class="tagline">Browse Parquet files a screenful at a time, like <code>less</code>. Opens huge and very wide files instantly.</p>
+  <div class="links">
+    <a class="button primary" href="#install">Install</a>
+    <a class="button" href="https://github.com/danodonovan/pqless">GitHub</a>
+    <a class="button" href="https://github.com/danodonovan/pqless/releases">Releases</a>
+  </div>
+</header>
+
+<div class="terminal">
+  <div class="bar" aria-hidden="true"><span></span><span></span><span></span></div>
+  <a href="demo.gif" title="Open the demo full size">
+  <picture>
+    <source srcset="og.jpg" media="(prefers-reduced-motion: reduce)">
+    <img src="demo.gif" width="1280" height="660"
+         alt="pqless browsing a 250,000-row file: paging down, moving between columns, jumping to the last row and to row 125,000, and showing the help screen.">
+  </picture>
+  </a>
+</div>
+
+<section class="features">
+  <div class="feature">
+    <h3>Only reads what you see</h3>
+    <p>Parquet stores each column separately, so pqless decodes just the rows and columns on screen. The first page of a multi-gigabyte file with tens of thousands of columns appears in a fraction of a second.</p>
+  </div>
+  <div class="feature">
+    <h3>Built for wide data</h3>
+    <p>Move a column cursor sideways and new columns load as they scroll into view. The header stays pinned, and the status bar shows each column's full name and type.</p>
+  </div>
+  <div class="feature">
+    <h3>Feels like less</h3>
+    <p>Space, <code>b</code>, <code>g</code>, <code>G</code>, <code>j</code>/<code>k</code> and number prefixes work as you'd expect. Piped output prints a plain-text table, so <code>| grep</code> and <code>| head</code> work too.</p>
+  </div>
+</section>
+
+<section id="install">
+  <h2>Install</h2>
+  <div class="install">
+    <div>
+      <h3>Homebrew (macOS, Linux)</h3>
+      <div class="cmd"><pre>brew install danodonovan/tap/pqless</pre><button class="copy" type="button">Copy</button></div>
+    </div>
+    <div>
+      <h3>Install script (macOS, Linux; x86_64, arm64)</h3>
+      <div class="cmd"><pre>curl --proto '=https' --tlsv1.2 -LsSf https://github.com/danodonovan/pqless/releases/latest/download/pqless-installer.sh | sh</pre><button class="copy" type="button">Copy</button></div>
+    </div>
+    <div>
+      <h3>From source (Rust 1.88+)</h3>
+      <div class="cmd"><pre>cargo install --git https://github.com/danodonovan/pqless</pre><button class="copy" type="button">Copy</button></div>
+    </div>
+  </div>
+  <p class="note">Then run <code>pqless data.parquet</code> and press <kbd>?</kbd> for keys.</p>
+</section>
+
+<section>
+  <h2>Keys</h2>
+  <table>
+    <tr><td><kbd>j</kbd> <kbd>↓</kbd> <kbd>Enter</kbd></td><td>down a row</td></tr>
+    <tr><td><kbd>k</kbd> <kbd>↑</kbd> <kbd>y</kbd></td><td>up a row</td></tr>
+    <tr><td><kbd>space</kbd> <kbd>f</kbd> <kbd>PgDn</kbd></td><td>down a page</td></tr>
+    <tr><td><kbd>b</kbd> <kbd>PgUp</kbd></td><td>up a page</td></tr>
+    <tr><td><kbd>d</kbd> / <kbd>u</kbd></td><td>down / up half a page</td></tr>
+    <tr><td><kbd>g</kbd> <kbd>Home</kbd></td><td>first row</td></tr>
+    <tr><td><kbd>G</kbd> <kbd>End</kbd></td><td>last row</td></tr>
+    <tr><td><span class="n">N</span> <kbd>g</kbd></td><td>go to row <span class="n">N</span></td></tr>
+    <tr><td><kbd>l</kbd> <kbd>→</kbd> / <kbd>h</kbd> <kbd>←</kbd></td><td>next / previous column</td></tr>
+    <tr><td><kbd>$</kbd> / <kbd>0</kbd></td><td>last / first column</td></tr>
+    <tr><td><span class="n">N</span> + key</td><td>repeat a move <span class="n">N</span> times</td></tr>
+    <tr><td><kbd>?</kbd></td><td>show / hide help</td></tr>
+    <tr><td><kbd>q</kbd> <kbd>Esc</kbd></td><td>quit</td></tr>
+  </table>
+</section>
+
+</div>
+
+<footer>
+  <div class="wrap">
+    pqless is MIT licensed · <a href="https://github.com/danodonovan/pqless">source on GitHub</a> · <a href="https://github.com/danodonovan/pqless/issues">report an issue</a>
+  </div>
+</footer>
+
+<script>
+  for (const button of document.querySelectorAll(".copy")) {
+    button.addEventListener("click", async () => {
+      const text = button.previousElementSibling.textContent;
+      try {
+        await navigator.clipboard.writeText(text);
+        button.textContent = "Copied";
+      } catch {
+        button.textContent = "Select & copy";
+      }
+      setTimeout(() => (button.textContent = "Copy"), 1500);
+    });
+  }
+</script>
+</body>
+</html>
