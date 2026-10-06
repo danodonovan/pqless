@@ -6,6 +6,10 @@ Browse a Parquet file a screenful at a time, like `less`.
 $ pqless data.parquet
 ```
 
+![pqless paging through a 250,000-row file, moving between columns and jumping to rows](site/demo.gif)
+
+More at **[danodonovan.github.io/pqless](https://danodonovan.github.io/pqless/)**.
+
 Rows are shown as an aligned table with a row-number column, a pinned
 header, and a status bar giving your position and the current column's full
 name and type.
