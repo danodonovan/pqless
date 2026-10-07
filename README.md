@@ -62,6 +62,12 @@ cargo install --git https://github.com/danodonovan/pqless
 | `?`                 | show / hide help         |
 | `q` `Esc`           | quit                     |
 
+## Benchmarks
+
+Time to first screen and peak memory compared with VisiData, tabiew,
+parqeye, DuckDB and others, on everyday, tall and very wide files: see
+[bench/README.md](bench/README.md).
+
 ## Piping
 
 When stdout isn't a terminal the whole table is written out as plain text,
