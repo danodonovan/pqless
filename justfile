@@ -86,3 +86,33 @@ demo:
     mkdir -p target/demo
     cargo run -q --release --example demo_data -- target/demo/sensors.parquet
     PATH="$PWD/target/release:$PATH" vhs demo/demo.tape
+
+# Install the tools the benchmark compares, into target/bench (a few minutes)
+bench-setup:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    w=target/bench
+    mkdir -p "$w"
+    python3 -m venv "$w/venv"
+    "$w/venv/bin/pip" install -q -r bench/requirements.txt
+    for crate in pqrs@0.3.2 tabiew@0.15.1 parqeye@0.2.0; do
+        CARGO_TARGET_DIR="$w/cargo-target" cargo install --locked --quiet --root "$w/tools" "$crate"
+    done
+    case "$(uname -s)-$(uname -m)" in
+        Darwin-*) platform=osx-universal ;;
+        Linux-x86_64) platform=linux-amd64 ;;
+        Linux-aarch64 | Linux-arm64) platform=linux-arm64 ;;
+        *) echo "no DuckDB CLI build for this platform"; exit 1 ;;
+    esac
+    curl -fsSL "https://github.com/duckdb/duckdb/releases/download/v1.5.6/duckdb_cli-$platform.zip" -o "$w/duckdb.zip"
+    unzip -oq "$w/duckdb.zip" -d "$w/tools/bin"
+    echo "Tools installed in $w"
+
+# Benchmark time-to-first-screen and memory against other tools (run bench-setup first)
+bench *args:
+    cargo build --release
+    mkdir -p target/bench/data
+    [ -f target/bench/data/wide.parquet ] || { \
+        cargo run -q --release --example demo_data -- target/bench/data/sensors.parquet && \
+        target/bench/venv/bin/python bench/gen_data.py target/bench/data; }
+    target/bench/venv/bin/python bench/bench.py {{ args }}
